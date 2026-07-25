@@ -289,6 +289,27 @@ class ReviewAndRatingProfileViewSet(GenericViewSet):
             "data": serializer.data
         }, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=["get"], url_path="customer/submitted/review(?:/(?P<review_id>[^/.]+))?")
+    def customer_submitted_reviews(self, request, review_id=None):
+        if review_id:
+            review = get_object_or_404(
+                ReviewAndRating,
+                id=review_id,
+                customer=request.user.customer_profile,
+                send_by=UserDefault.CUSTOMER
+            )
+            serializer = self.get_serializer(review)
+        else:
+            reviews = ReviewAndRating.objects.filter(
+                customer=request.user.customer_profile,
+                send_by=UserDefault.CUSTOMER
+            )
+            serializer = self.get_serializer(reviews, many=True)
+        return Response({
+            "status": True,
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
+
     @action(detail=False, methods=["get"], url_path="provider(?:/(?P<review_id>[^/.]+))?")
     def provider_reviews(self, request, review_id=None):
         if review_id:
@@ -310,6 +331,27 @@ class ReviewAndRatingProfileViewSet(GenericViewSet):
                 "data": serializer.data
             }, status=status.HTTP_200_OK
         )
+
+    @action(detail=False, methods=["get"], url_path="provider/submitted/review(?:/(?P<review_id>[^/.]+))?")
+    def provider_submitted_reviews(self, request, review_id=None):
+        if review_id:
+            review = get_object_or_404(
+                ReviewAndRating,
+                id=review_id,
+                customer=request.user.customer_profile,
+                send_by=UserDefault.PROVIDER
+            )
+            serializer = self.get_serializer(review)
+        else:
+            reviews = ReviewAndRating.objects.filter(
+                customer=request.user.customer_profile,
+                send_by=UserDefault.PROVIDER
+            )
+            serializer = self.get_serializer(reviews, many=True)
+        return Response({
+            "status": True,
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
 
 # User Info Current ===========================
 

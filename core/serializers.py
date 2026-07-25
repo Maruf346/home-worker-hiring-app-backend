@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Ticket, TicketReply, TicketSenderType, SignUpSlider, CustomerScreenSlide
-from find_worker_config.model_choice import OrderStatus
+from find_worker_config.model_choice import OrderStatus, UserDefault
 from .models import AdminWallet
 from django.db import transaction
 from account.models import ServiceProviderProfile
@@ -117,7 +117,8 @@ class HelperSerializer(serializers.ModelSerializer):
                 "review": review.review,
                 "created_at": review.created_at
             }
-            for review in obj.provider_reviews.all()
+            # for review in obj.provider_reviews.all()
+            for review in obj.provider_reviews.filter(send_by=UserDefault.CUSTOMER)
         ]
 
     def get_portfolio(self, obj):
