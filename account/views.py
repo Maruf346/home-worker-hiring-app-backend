@@ -217,8 +217,13 @@ class UserAddressViews(UpdateModelViewSet):
             )
 
 class UserDefaultLanguage(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, *args, **kwargs):
         try:
+            print("session language: ", request.session.get("language"))
+            print("user language: ", request.user.language)
+
             if request.session.get("language"):
                 return Response(
                     {
@@ -234,7 +239,7 @@ class UserDefaultLanguage(APIView):
             return Response(
                 {
                     "status": True,
-                    "language": request.session["language"]
+                    "language": language
                 }, status=status.HTTP_200_OK
             )
         except Exception as e:
@@ -252,6 +257,11 @@ class UserDefaultLanguage(APIView):
             language = lan
         else:
             language = UserLanguage.EN
+
+        user = self.request.user
+        user.language = language
+        user.save()
+        
         request.session["language"] = language
         return Response(
             {
