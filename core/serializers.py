@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.utils.translation import gettext as _
 from .models import Ticket, TicketReply, TicketSenderType, SignUpSlider, CustomerScreenSlide
 from find_worker_config.model_choice import OrderStatus, UserDefault
 from .models import AdminWallet
@@ -26,7 +27,7 @@ class TicketReplySerializer(serializers.ModelSerializer):
             sender_type = user.role
             print("sender_type: ", sender_type)
             if not sender_type:
-                raise Exception("Sender Type Missing!")
+                raise Exception(_("Sender Type Missing!"))
             
             validated_data["reply_sender"] = user
             validated_data["sender_type"] = sender_type

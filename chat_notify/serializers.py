@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.utils.translation import gettext as _
 from .models import ChatMessage, ChatRoom, Attachment, Notification, ChatEvent
 from task.models import Order, OrderChangesRequest
 from account.models import ServiceProviderProfile, User
@@ -58,7 +59,7 @@ class ChatMessageSerializer(serializers.ModelSerializer):
         elif obj.sender == UserDefault.PROVIDER:
             user = obj.room.provider.user
         else:
-            raise Exception("Invalid User!")
+            raise Exception(_("Invalid User!"))
         return UserMiniSerializer(user).data if user else None
     
     def get_message_type_from_mime(self, mime: str):
@@ -132,7 +133,7 @@ class RoomStartSerializer(serializers.Serializer):
         other_provider = ServiceProviderProfile.objects.get(id=provider_id)
         print("other_provider: :", other_provider)
         if me_customer == other_provider:
-            raise Exception("Same user cannot chat each other!")
+            raise Exception(_("Same user cannot chat each other!"))
         self.customer = me_customer
         self.provider = other_provider
         return super().validate(attrs)
@@ -234,7 +235,7 @@ class ChatMessageSpecialSerializer(serializers.ModelSerializer):
         elif obj.sender == UserDefault.CUSTOMER:
             user = obj.room.customer.user
         else:
-            raise Exception("Invalid User!")
+            raise Exception(_("Invalid User!"))
         return UserMiniSerializer(user).data
 
 # messages = (

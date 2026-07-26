@@ -23,7 +23,6 @@ from .utils import generate_otp, get_otp_object
 from find_worker_config.utils import UpdateModelViewSet, UpdateReadOnlyModelViewSet
 from rest_framework.permissions import IsAuthenticated
 from django.db import transaction
-from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 from task.models import Order, ReviewAndRating
 from math import radians, cos, sin, asin, sqrt
