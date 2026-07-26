@@ -1,4 +1,5 @@
 from account.models import HelperSlotException, Address, User, HelperStrike
+from django.utils.translation import gettext as _
 from .serializers import ServiceCategorySerializer, ServiceSubCategorySerializer, ReviewAndRatingSerializer, PaymentTransactionSerializer, CompleteSerializer, CounterSerializer, ProposeNewTimeActionSerializer, ProposeNewTimeSerializer, SetHourSerializer, OrderSerializerAll, StartWorkSerializer, ReviewAndRatingSerializer
 from find_worker_config.utils import UpdateModelViewSet, PaymentTransactionModule, UpdateReadOnlyModelViewSet
 from .models import ServiceCategory, ServiceSubCategory, Order, ReviewAndRating, PaymentTransaction, OrderRefundRequest, OrderChangesRequest
@@ -96,7 +97,7 @@ class GetHelperDateAvailablity(APIView):
     
     def check_by_working_hour(self, provider, date, time, working_hour):
         if not date and not time:
-            raise ValidationError("Date or time must be provided.")
+            raise ValidationError(_("Date or time must be provided."))
 
         # Convert string to date
         if isinstance(date, str):
@@ -117,7 +118,7 @@ class GetHelperDateAvailablity(APIView):
                 {
                     "status": False,
                     "is_available": False,
-                    "message": f"For {working_hour} hour, Slot is unavailable!",
+                    "message": _("For {} hour, Slot is unavailable!").format(working_hour),
                     "available_slot": self.get_date_available_slot(provider, date)
                 }, status=status.HTTP_200_OK
             )
@@ -125,7 +126,7 @@ class GetHelperDateAvailablity(APIView):
                 {
                     "stauts": True,
                     "is_availasble": True,
-                    "message": f"For {working_hour} hour, Slot is available!",
+                    "message": _("For {} hour, Slot is available!").format(working_hour),
                     "slot": f"{slot_start_dt.strftime('%I:%M %p')} - {slot_end_dt.strftime('%I:%M %p')}"
                 }, status=status.HTTP_200_OK
             )
@@ -175,7 +176,7 @@ class CustomerOrderCreateViews(CreateAPIView):
         try:
             return datetime.strptime(time_str, "%I:%M %p").time()
         except ValueError:
-            raise ValidationError("Invalid time format. Expected format like '09:00 AM'")
+            raise ValidationError(_("Invalid time format. Expected format like '09:00 AM'"))
     
     def get_room(self, order):
         customer = order.customer
@@ -196,12 +197,12 @@ class CustomerOrderCreateViews(CreateAPIView):
         )
         if slot_status != HelperSlotExceptionType.AVAILABLE:
             status_map = {
-                "BOOKED": "Already booked",
-                "UNAVAILABLE": "Provider unavailable",
-                "FREEZED": "Temporarily locked",
+                "BOOKED": _("Already booked"),
+                "UNAVAILABLE": _("Provider unavailable"),
+                "FREEZED": _("Temporarily locked"),
             }
             raise ValidationError({
-                "slot": status_map.get(slot_status, "Not available")
+                "slot": status_map.get(slot_status, _("Not available"))
             })
     
     def create(self, request, *args, **kwargs):
@@ -232,7 +233,7 @@ class CustomerOrderCreateViews(CreateAPIView):
                 return Response(
                     {
                         'status': True,
-                        'message': 'Custom offer created!',
+                        'message': _('Custom offer created!'),
                         'data': serializer.data
                     }, status=status.HTTP_201_CREATED
                 )
@@ -408,7 +409,7 @@ class CustomerOrderViewSet(UpdateModelViewSet):
             return Response(
                 {
                     "status": True,
-                    "message": "Counter Offer Sent"
+                    "message": _("Counter Offer Sent")
                 }, status=status.HTTP_200_OK
             )
         except ValidationError:
@@ -484,7 +485,7 @@ class CustomerOrderViewSet(UpdateModelViewSet):
             return Response(
                 {
                     "status": True,
-                    "message": "Order accept and awaiting for payment."
+                    "message": _("Order accept and awaiting for payment.")
                 }, status=status.HTTP_200_OK
             )
 
@@ -495,14 +496,14 @@ class CustomerOrderViewSet(UpdateModelViewSet):
             # Error Handling, Permission and Acceptance For Payment
             if order.payment_transactions.filter(type=PaymentTransactionType.CREDIT, action=PaymentAction.ORDER_PAYMENT).exists():
                 return Response(
-                    {"status": False, "message": "Duplicate payment detected."},
+                    {"status": False, "message": _("Duplicate payment detected.")},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             if order.status == OrderStatus.CONFIRM and order.payment_status == OrderPaymentStatus.PAID:
-                raise Exception("The order is already confirm!")
+                raise Exception(_("The order is already confirm!"))
             if not (order.status == OrderStatus.ACCEPT and order.payment_status == OrderPaymentStatus.UNPAID):
                 return Response(
-                    {"status": False, "message": "Only accept and Unpaid order can payment to confirm!"},
+                    {"status": False, "message": _("Only accept and Unpaid order can payment to confirm!")},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
@@ -552,7 +553,7 @@ class CustomerOrderViewSet(UpdateModelViewSet):
                     role=UserRole.USER, send_to=order.provider.user, send_to_type=UserDefault.PROVIDER
                 )
                 return Response(
-                    {"status": True, "message": "Order pay and confirm!"},
+                    {"status": True, "message": _("Order pay and confirm!")},
                     status=status.HTTP_200_OK
                 )
         except ValidationError:
@@ -580,7 +581,7 @@ class CustomerOrderViewSet(UpdateModelViewSet):
             elif action == "update":
                 serializer = ProposeNewTimeActionSerializer(data=request.data)
             else:
-                raise Exception("Action not mention!")
+                raise Exception(_("Action not mention!"))
             serializer.is_valid(raise_exception=True)
             serializer.save(order=order, profile_type=UserDefault.CUSTOMER)
 
@@ -622,7 +623,7 @@ class CustomerOrderViewSet(UpdateModelViewSet):
                 return Response(
                     {
                         "status": False,
-                        "message": "Cancellation Request already Send!"
+                        "message": _("Cancellation Request already Send!")
                     }, status=status.HTTP_400_BAD_REQUEST
                 )
             
@@ -658,7 +659,7 @@ class CustomerOrderViewSet(UpdateModelViewSet):
                 return Response(
                     {
                         "status": False,
-                        "message": f"Order already {order.status}"
+                        "message": _("Order already {}").format(order.status)
                     }, status=status.HTTP_400_BAD_REQUEST
                 )
             order.save()
@@ -709,15 +710,15 @@ class CustomerOrderViewSet(UpdateModelViewSet):
         # user validation----
         changes_request = OrderChangesRequest.objects.get(pk=request_id)
         if changes_request.request_by == UserDefault.CUSTOMER:
-            raise Exception("You can't perform this action")
+            raise Exception(_("You can't perform this action"))
         if changes_request.status not in [OrderChangesRequestStatus.NO_RESPONSE]:
-            raise Exception(f"Order Request Already Perform!")
+            raise Exception(_("Order Request Already Perform!"))
         
         pending_cancel_request = OrderChangesRequest.objects.filter(
             order=order, status=OrderChangesRequestStatus.NO_RESPONSE
         ).first()
         if pending_cancel_request != changes_request:
-            raise Exception("Wrong Request ID")
+            raise Exception(_("Wrong Request ID"))
 
         # use logic---
         with transaction.atomic():
@@ -811,7 +812,7 @@ class CustomerOrderViewSet(UpdateModelViewSet):
                 return Response(
                     {
                         "status": True,
-                        "message": "Thanks for your feedback!"
+                        "message": _("Thanks for your feedback!")
                     }, status=status.HTTP_200_OK
                 )
         except ValidationError:
@@ -835,7 +836,7 @@ class CustomerOrderViewSet(UpdateModelViewSet):
         return Response(
             {
                 "status": True,
-                "message": "Create method not allowed!"
+                "message": _("Create method not allowed!")
             }, status=status.HTTP_405_METHOD_NOT_ALLOWED
         )
     
@@ -847,7 +848,7 @@ class CustomerOrderViewSet(UpdateModelViewSet):
         return Response(
             {
                 "status": True,
-                "message": "Update method not allowed!"
+                "message": _("Update method not allowed!")
             }, status=status.HTTP_405_METHOD_NOT_ALLOWED
         )
     
@@ -859,7 +860,7 @@ class CustomerOrderViewSet(UpdateModelViewSet):
         return Response(
             {
                 "status": True,
-                "message": "Delete method not allowed!"
+                "message": _("Delete method not allowed!")
             }, status=status.HTTP_405_METHOD_NOT_ALLOWED
         )
 
@@ -997,7 +998,7 @@ class ProviderOrderViewSet(UpdateModelViewSet):
             return Response(
                 {
                     "status": True,
-                    "message": "Counter Offer Sent"
+                    "message": _("Counter Offer Sent")
                 }, status=status.HTTP_200_OK
             )
         except ValidationError:
@@ -1071,7 +1072,7 @@ class ProviderOrderViewSet(UpdateModelViewSet):
             return Response(
                 {
                     "status": True,
-                    "message": "Order accept and awaiting for payment."
+                    "message": _("Order accept and awaiting for payment.")
                 }, status=status.HTTP_200_OK
             )
 
@@ -1102,7 +1103,7 @@ class ProviderOrderViewSet(UpdateModelViewSet):
                 return Response(
                     {
                         "status": True,
-                        "message": f"{serializer.validated_data.get("set_hour")} Hour Set for complete the work!"
+                        "message": _("{} Hour Set for complete the work!").format(serializer.validated_data.get("set_hour"))
                     }, status=status.HTTP_200_OK
                 )
         except ValidationError:
@@ -1129,7 +1130,7 @@ class ProviderOrderViewSet(UpdateModelViewSet):
             elif action == "update":
                 serializer = ProposeNewTimeActionSerializer(data=request.data)
             else:
-                raise Exception("Action not mention!")
+                raise Exception(_("Action not mention!"))
             serializer.is_valid(raise_exception=True)
             serializer.save(order=order, profile_type=UserDefault.PROVIDER)
 
@@ -1171,7 +1172,7 @@ class ProviderOrderViewSet(UpdateModelViewSet):
                 return Response(
                     {
                         "status": False,
-                        "message": "Cancellation Request already Send!"
+                        "message": _("Cancellation Request already Send!")
                     }, status=status.HTTP_400_BAD_REQUEST
                 )
 
@@ -1207,7 +1208,7 @@ class ProviderOrderViewSet(UpdateModelViewSet):
                 return Response(
                     {
                         "status": False,
-                        "message": f"Order already {order.payment_status}"
+                        "message": _("Order already {}").format(order.payment_status)
                     }, status=status.HTTP_400_BAD_REQUEST
                 )
             order.save()
@@ -1257,15 +1258,15 @@ class ProviderOrderViewSet(UpdateModelViewSet):
         # user validation----
         changes_request = OrderChangesRequest.objects.get(pk=request_id)
         if changes_request.request_by == UserDefault.PROVIDER:
-            raise Exception("You can't perform this action")
+            raise Exception(_("You can't perform this action"))
         if changes_request.status not in [OrderChangesRequestStatus.NO_RESPONSE]:
-            raise Exception(f"Order Request Already Perform!")
+            raise Exception(_("Order Request Already Perform!"))
         
         pending_cancel_request = OrderChangesRequest.objects.filter(
             order=order, status=OrderChangesRequestStatus.NO_RESPONSE
         ).first()
         if pending_cancel_request != changes_request:
-            raise Exception("Wrong Request ID")
+            raise Exception(_("Wrong Request ID"))
         
         # use logic---
         with transaction.atomic():
@@ -1355,7 +1356,7 @@ class ProviderOrderViewSet(UpdateModelViewSet):
             return Response(
                 {
                     "status": True,
-                    "message": "Work Started!"
+                    "message": _("Work Started!")
                 }, status=status.HTTP_200_OK
             )
         except ValidationError:
@@ -1406,7 +1407,7 @@ class ProviderOrderViewSet(UpdateModelViewSet):
                 return Response(
                     {
                         "status": True,
-                        "message": "Work Complete!"
+                        "message": _("Work Complete!")
                     }, status=status.HTTP_200_OK
                 )
         except ValidationError:
@@ -1439,7 +1440,7 @@ class ProviderOrderViewSet(UpdateModelViewSet):
                 return Response(
                     {
                         "status": True,
-                        "message": "Thanks for your feedback!"
+                        "message": _("Thanks for your feedback!")
                     }, status=status.HTTP_200_OK
                 )
         except ValidationError:
@@ -1463,7 +1464,7 @@ class ProviderOrderViewSet(UpdateModelViewSet):
         return Response(
             {
                 "status": True,
-                "message": "Post method not allowed!"
+                "message": _("Post method not allowed!")
             }, status=status.HTTP_405_METHOD_NOT_ALLOWED
         )
 
@@ -1475,7 +1476,7 @@ class ProviderOrderViewSet(UpdateModelViewSet):
         return Response(
             {
                 "status": True,
-                "message": "Update method not allowed!"
+                "message": _("Update method not allowed!")
             }, status=status.HTTP_405_METHOD_NOT_ALLOWED
         )
     
@@ -1487,7 +1488,7 @@ class ProviderOrderViewSet(UpdateModelViewSet):
         return Response(
             {
                 "status": True,
-                "message": "Delete method not allowed!"
+                "message": _("Delete method not allowed!")
             }, status=status.HTTP_405_METHOD_NOT_ALLOWED
         )
 
@@ -1528,7 +1529,7 @@ class PaymentTransactionViewSets(UpdateReadOnlyModelViewSet):
         elif self.request.user.role == UserRole.ADMIN:
             pt = PaymentTransaction.objects.all()
         else:
-            raise Exception("Payment transaction not get for the user.")
+            raise Exception(_("Payment transaction not get for the user."))
         return pt
 
 # =================== Payment transaction Section Start===================================

@@ -1,6 +1,7 @@
 
 from rest_framework import status, exceptions
 from rest_framework.response import Response
+from django.utils.translation import gettext_lazy as _
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from find_worker_config.model_choice import PaymentCurrencyType, PaymentTransactionType, ServiceChargeType, PaymentAction
 from task.models import PaymentTransaction
@@ -16,7 +17,7 @@ from chat_notify.models import Notification
 
 
 class UpdateModelViewSet(ModelViewSet):
-    delete_message = "Object Successfully Deleted!"
+    delete_message = _("Object successfully deleted.")
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
@@ -227,7 +228,7 @@ class PaymentTransactionModule:
             )
             self.update_wallet(payment_transaction)
             return True
-        raise Exception("Payment Transaction not update.")
+        raise Exception(_("Payment transaction failed to update."))
 
 
 

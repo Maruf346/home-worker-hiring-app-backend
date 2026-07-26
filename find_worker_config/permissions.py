@@ -1,6 +1,7 @@
 from rest_framework.permissions import BasePermission
 from find_worker_config.model_choice import UserRole
 from django.conf import settings
+from django.utils.translation import gettext_lazy as _
 
 SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
 
@@ -46,7 +47,7 @@ class IsAdminWritePermissionOnly(BasePermission):
 
 
 class IsValidFrontendRequest(BasePermission):
-    message = "You are not allowed to access this API from this client."
+    message = _("You are not allowed to access this API from this client.")
     def has_permission(self, request, view):
         app_key = request.headers.get("X-FRONTEND-KEY")
         origin = request.headers.get("Origin")
@@ -71,7 +72,7 @@ class HasCustomerProfileSafeModeTypeHeader(BasePermission):
     def has_permission(self, request, view):
         profile_type = request.headers.get("profile-type", "").lower()
         if not profile_type:
-            raise Exception("Profile Type must be set in headers.")
+            raise Exception(_("Profile Type must be set in headers."))
             # return False
         user = request.user
         if not user.is_authenticated:

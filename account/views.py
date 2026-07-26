@@ -1,5 +1,7 @@
 # import datetime
 from datetime import datetime, timedelta
+from django.core.exceptions import ObjectDoesNotExist
+from django.utils.translation import gettext as _
 from django.shortcuts import render, get_object_or_404
 from rest_framework.response import Response
 from rest_framework.generics import RetrieveUpdateDestroyAPIView, CreateAPIView, GenericAPIView
@@ -45,7 +47,7 @@ class WelComeAPI(APIView):
         return Response(
             {
                 "status": True,
-                "message": "APi Active!!!"
+                "message": _("APi Active!!!")
             }, status=status.HTTP_200_OK
         )
 
@@ -68,7 +70,7 @@ class CurrentUserInfoView(RetrieveUpdateDestroyAPIView):
         elif user_mode == UserDefault.PROVIDER:
             profile = get_object_or_404(ServiceProviderProfile, user=user)
             if not profile:
-                raise Exception("Helper Profile Not Created!")
+                raise Exception(_("Helper Profile Not Created!"))
             if not CustomerProfile.objects.filter(user=user).exists() and not user.default_profile:
                 user.default_profile = UserDefault.PROVIDER
         else:
@@ -140,7 +142,7 @@ class UserAddressViews(UpdateModelViewSet):
             return Address.objects.filter(user=user)
         elif self.request.user.role in (UserRole.ADMIN):
             return Address.objects.all()
-        raise Exception("Wrong user!")
+        raise Exception(_("Wrong user!"))
     
     def list(self, request, *args, **kwargs):
         try:
@@ -366,7 +368,7 @@ class CreateUserHelperView(CreateAPIView):
     def get_object(self):
         user = self.request.user
         if self.get_helper_profile(user):
-            raise Exception("Helper profile already created!")
+            raise Exception(_("Helper profile already created!"))
         return user
     
     def get_helper_profile(self, user):
@@ -478,7 +480,7 @@ class ProviderVerificationViews(APIView):
             elif request.user.role == UserRole.ADMIN:
                 serializer = self.serializer_class(ProviderVerification.objects.all(), many=True, context={"request": request})
             else:
-                raise Exception("Wrong user.")
+                raise Exception(_("Wrong user."))
             
             return Response(
                 {
@@ -499,7 +501,7 @@ class ProviderVerificationViews(APIView):
             with transaction.atomic():
                 provider = getattr(request.user, "service_provider_profile", None)
                 if not provider:
-                    raise Exception("This user have no provider profile.")
+                    raise Exception(_("This user have no provider profile."))
 
                 verification, created = ProviderVerification.objects.get_or_create(
                     provider=provider
@@ -552,17 +554,17 @@ class ProviderAddressUpdateView(APIView):
     def post(self, request):
         try:
             if not self.request.user.hasServiceProviderProfile:
-                raise Exception("This user have no provider profile.")
+                raise Exception(_("This user have no provider profile."))
             provider = request.user.hasServiceProviderProfile
             data = request.data
             address_object_id = data.get("address_object_id", None)
             if address_object_id is None:
-                raise Exception("Address object id is required.")
+                raise Exception(_("Address object id is required."))
             address = get_object_or_404(
                 Address, id=address_object_id, user=request.user
             )
             if not address:
-                raise Exception("Address not found with this id for this user.")
+                raise Exception(_("Address not found with this id for this user."))
             provider.office_location = address
             provider.save(update_fields=["office_location"])
 
@@ -573,7 +575,7 @@ class ProviderAddressUpdateView(APIView):
             return Response(
                 {
                     "status": True,
-                    "message": "Office location updated successfully."
+                    "message": _("Office location updated successfully.")
                 }, status=status.HTTP_200_OK
             )
         except Exception as e:
@@ -598,7 +600,7 @@ class HelperWeeklyAvailabilityViewSet(UpdateModelViewSet):
         try:
             return datetime.strptime(time_str, "%I:%M %p").time()
         except ValueError:
-            raise ValidationError("Invalid time format. Expected format like '09:00 AM'")
+            raise ValidationError(_("Invalid time format. Expected format like '09:00 AM'"))
 
     def get_queryset(self):
         return HelperWeeklyAvailability.objects.filter(provider=self.request.user.service_provider_profile)
@@ -626,15 +628,15 @@ class HelperWeeklyAvailabilityViewSet(UpdateModelViewSet):
         if type(available_days) is str:
             available_days = [available_days]
         if not 1 <= len(available_days) <= 7:
-            raise Exception("You must select at least 1 day and at most 7 days for availability.")
+            raise Exception(_("You must select at least 1 day and at most 7 days for availability."))
         elif not all(isinstance(day, str) and day in WeekDay.values for day in available_days):
-            raise Exception("Days must be a list of valid week days.")
+            raise Exception(_("Days must be a list of valid week days."))
         elif not start_time or not end_time:
-            raise Exception("Start time and end time are required.")
+            raise Exception(_("Start time and end time are required."))
         elif self.convert_to_24h(start_time) >= self.convert_to_24h(end_time):
-            raise Exception("Start time must be before end time.")
+            raise Exception(_("Start time must be before end time."))
         elif day_status and day_status not in [DayStatus.AVAILABLE, DayStatus.OFF, DayStatus.UNAVAILABLE]:
-            raise Exception("Invalid day status.")
+            raise Exception(_("Invalid day status."))
 
     @action(detail=False, methods=["post"], url_path="update-availability/(?P<day>[^/.]+)")
     def update_availability(self, request, day):
@@ -661,7 +663,7 @@ class HelperWeeklyAvailabilityViewSet(UpdateModelViewSet):
             return Response(
                 {
                     "status": True,
-                    "message": "Day availability updated successfully."
+                    "message": _("Day availability updated successfully.")
                 }, status=status.HTTP_200_OK
             )
         except Exception as e:
@@ -706,7 +708,7 @@ class HelperWeeklyAvailabilityViewSet(UpdateModelViewSet):
             return Response(
                 {
                     "status": True,
-                    "message": "Weekly availability set successfully."
+                    "message": _("Weekly availability set successfully.")
                 }, status=status.HTTP_200_OK
             )
         except Exception as e:
@@ -790,9 +792,9 @@ class HelperWeeklyAvailabilityViewSet(UpdateModelViewSet):
                 is_available = data.get("is_available")
 
                 if not date or not start_time or not end_time:
-                    raise Exception("Date, start time and end time are required.")
+                    raise Exception(_("Date, start time and end time are required."))
                 elif self.convert_to_24h(start_time) >= self.convert_to_24h(end_time):
-                    raise Exception("Start time must be before end time.")
+                    raise Exception(_("Start time must be before end time."))
                 
                 excep, created = HelperSlotException.objects.get_or_create(
                     provider=request.user.service_provider_profile,
@@ -811,7 +813,7 @@ class HelperWeeklyAvailabilityViewSet(UpdateModelViewSet):
                 return Response(
                     {
                         "status": True,
-                        "message": "Slot exception added successfully."
+                        "message": _("Slot exception added successfully.")
                     }, status=status.HTTP_200_OK
                 )
         except Exception as e:
@@ -838,11 +840,11 @@ class HelperWeeklyAvailabilityViewSet(UpdateModelViewSet):
                 date_status = data.get("date_status", "").upper()
 
                 if not date or not start_time or not end_time:
-                    raise Exception("Date, start time and end time are required.")
+                    raise Exception(_("Date, start time and end time are required."))
                 elif self.convert_to_24h(start_time) >= self.convert_to_24h(end_time):
-                    raise Exception("Start time must be before end time.")
+                    raise Exception(_("Start time must be before end time."))
                 elif date_status not in [DateStatus.AVAILABLE, DateStatus.UNAVAILABLE]:
-                    raise Exception("Invalid date status.")
+                    raise Exception(_("Invalid date status."))
                 
                 special_date, _ = HelperSpecialDate.objects.update_or_create(
                     provider=request.user.service_provider_profile,
@@ -864,7 +866,7 @@ class HelperWeeklyAvailabilityViewSet(UpdateModelViewSet):
                 return Response(
                     {
                         "status": True,
-                        "message": "Special date added successfully."
+                        "message": _("Special date added successfully.")
                     }, status=status.HTTP_200_OK
                 )
         except Exception as e:
@@ -943,7 +945,7 @@ class ProviderEarningsView(APIView):
         with transaction.atomic():
             provider = request.user.hasServiceProviderProfile
             if not provider:
-                raise Exception("This user have no provider profile.")
+                raise Exception(_("This user have no provider profile."))
             helper_earnings, created = HelperWallet.objects.get_or_create(provider=request.user.hasServiceProviderProfile)
             return Response(
                 {
@@ -976,7 +978,7 @@ class ProviderEarningsTransactionsView(APIView):
         try:
             provider = request.user.hasServiceProviderProfile
             if not provider:
-                raise Exception("This user have no provider profile.")
+                raise Exception(_("This user have no provider profile."))
             
             transactions = PaymentTransaction.objects.filter(user=request.user, profile=UserDefault.PROVIDER, action=PaymentAction.SEND_PROVIDER).select_related(
                "order"
@@ -1062,11 +1064,11 @@ class SaveHelperProfileViews(UpdateReadOnlyModelViewSet):
         try:
             helper_profile = ServiceProviderProfile.objects.get(id=helper_id)
             if not ServiceProviderProfile.objects.filter(id=helper_id).exists():
-                raise Exception("This helper does not exist. Please check if the helper id was keyed in correctly.")
+                raise Exception(_("This helper does not exist. Please check if the helper id was keyed in correctly."))
             elif ServiceProviderProfile.objects.get(id=helper_id).user == request.user:
-                raise Exception("You can't save your own profile!")
+                raise Exception(_("You can't save your own profile!"))
             elif self.get_queryset().filter(helper__id=helper_id).exists():
-                raise Exception("You've already saved this one! Find in Saved Helpers")
+                raise Exception(_("You've already saved this one! Find in Saved Helpers"))
             
             with transaction.atomic():
                 SavedHelper.objects.create(
@@ -1081,7 +1083,7 @@ class SaveHelperProfileViews(UpdateReadOnlyModelViewSet):
                 return Response(
                     {
                         "status": True,
-                        "message": f"{helper_profile.user.first_name} {helper_profile.user.last_name} Add in your saved helpers. Find in Saved Helpers."
+                        "message": _("{} {} Add in your saved helpers. Find in Saved Helpers.").format(helper_profile.user.first_name, helper_profile.user.last_name)
                     }, status=status.HTTP_200_OK
                 )
         except Exception as e:
@@ -1109,7 +1111,7 @@ class SaveHelperProfileViews(UpdateReadOnlyModelViewSet):
             return Response(
                 {
                     "status": True,
-                    "message": "Helper removed from saved helpers."
+                    "message": _("Helper removed from saved helpers.")
                 }, status=status.HTTP_200_OK
             )
         except Exception as e:
@@ -1263,11 +1265,11 @@ class MyVoucherViewSet(UpdateReadOnlyModelViewSet):
         try:
             voucher_code = request.data.get("voucher_code")
             if not voucher_code:
-                raise Exception("Voucher code field is empty!")
+                raise Exception(_("Voucher code field is empty!"))
             elif self.get_queryset().filter(code=voucher_code).exists():
-                raise Exception("You've already saved this one! Find in Vouchers")
+                raise Exception(_("You've already saved this one! Find in Vouchers"))
             elif not AddOfferVoucher.objects.filter(code=voucher_code).exists():
-                raise Exception("This voucher does not exist. Please check if the voucher code was keyed in correctly.")
+                raise Exception(_("This voucher does not exist. Please check if the voucher code was keyed in correctly."))
             
             with transaction.atomic():
                 offer_voucher = AddOfferVoucher.objects.get(code=voucher_code)
@@ -1290,7 +1292,7 @@ class MyVoucherViewSet(UpdateReadOnlyModelViewSet):
                 return Response(
                     {
                         "status": True,
-                        "message": f"{voucher_code} Add in your account. Find in Vouchers."
+                        "message": _("{} Add in your account. Find in Vouchers.").format(voucher_code)
                     }
                 )
         except Exception as e:
@@ -1417,7 +1419,7 @@ class CustomerPaymentMethodViewSet(UpdateModelViewSet):
                     request=self.request, action="SET DEFAULT PAYMENT METHOD", status=LogStatus.SUCCESS, message="Set Default Payment Method.", entity=obj,
                     perform_user=self.request.user, perform_user_type=UserDefault.CUSTOMER
                 )
-                return Response({"status": True, "message": "Default updated"}, status=status.HTTP_200_OK)
+                return Response({"status": True, "message": _("Default updated")}, status=status.HTTP_200_OK)
         except Exception as e:
             handle_log_engine(
                 request=self.request, action="SET DEFAULT PAYMENT METHOD", status=LogStatus.FAILED, message=str(e),
@@ -1481,7 +1483,7 @@ class ProviderPayoutMethodViewSet(UpdateModelViewSet):
                     request=self.request, action="SET DEFAULT PAYOUT METHOD", status=LogStatus.SUCCESS, message="Set Default Payout Method.", entity=obj,
                     perform_user=self.request.user, perform_user_type=UserDefault.PROVIDER
                 )
-                return Response({"status": True, "message": "Default updated"}, status=status.HTTP_200_OK)
+                return Response({"status": True, "message": _("Default updated")}, status=status.HTTP_200_OK)
         except Exception as e:
             handle_log_engine(
                 request=self.request, action="SET DEFAULT PAYOUT METHOD", status=LogStatus.FAILED, message=str(e),

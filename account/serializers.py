@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -46,13 +47,13 @@ class LoginOTPRequestSerializer(serializers.Serializer):
 
         if not self.phone and not self.email:
             raise serializers.ValidationError(
-                "Either phone or email must be provided."
+                _("Either phone or email must be provided.")
             )
         try:
             self.user = self.get_user()
         except ObjectDoesNotExist:
             raise serializers.ValidationError(
-                "No user found with the provided phone/email."
+                _("No user found with the provided phone/email.")
             )
         return attrs
 
@@ -104,7 +105,7 @@ class SignUpOTPRequestSerializer(serializers.Serializer):
     def validate(self, attrs):
         if not attrs.get("phone") and not attrs.get("email"):
             raise serializers.ValidationError(
-                "Either phone or email must be provided."
+                _("Either phone or email must be provided.")
             )
         return attrs
 
@@ -116,7 +117,7 @@ class SignUpOTPVerifySerializer(serializers.Serializer):
     def validate(self, attrs):
         if not attrs.get("phone") and not attrs.get("email"):
             raise Exception(
-                "Either phone or email must be provided."
+                _("Either phone or email must be provided.")
             )
         return attrs
 
@@ -143,12 +144,12 @@ class SignupSerializer(serializers.ModelSerializer):
 
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("Email already exists")
+            raise serializers.ValidationError(_("Email already exists"))
         return value
 
     def validate_phone(self, value):
         if User.objects.filter(phone=value).exists():
-            raise serializers.ValidationError("Phone already exists")
+            raise serializers.ValidationError(_("Phone already exists"))
         return value
     
     def create_address(self, user, address_data):
@@ -221,7 +222,7 @@ class PasswordResetRequestSerializer(serializers.Serializer):
 
     def validate_email(self, value):
         if not User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("User with this email does not exist.")
+            raise serializers.ValidationError(_("User with this email does not exist."))
         self.user_email = value
         return value
     
@@ -256,7 +257,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     
     def validate(self, attrs):
         if not attrs.get("email") and not attrs.get("phone"):
-            raise Exception("email or phone is required")
+            raise Exception(_("email or phone is required"))
         return super().validate(attrs)
     
     def set_new_password(self, user):
@@ -275,11 +276,11 @@ class ChangePasswordSerializer(serializers.Serializer):
     
     def validate(self, attrs):
         if attrs.get("confirm_new_password") != attrs.get("new_password"):
-            raise Exception("New password & confirm password not same.")
+            raise Exception(_("New password & confirm password not same."))
         request = self.context.get("request")
         user = request.user
         if not user.check_password(attrs["old_password"]):
-            raise ValidationError({"old_password": "Wrong password"})
+            raise ValidationError({"old_password": _("Wrong password")})
         self.new_set_password = attrs.get("new_password")
         return user
     
@@ -475,11 +476,11 @@ class VoucherSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         if data.get("expiry_date") and data["expiry_date"] < timezone.now():
-            raise serializers.ValidationError("Expiry date must be in the future")
+            raise serializers.ValidationError(_("Expiry date must be in the future"))
 
         if data.get("discount_type") == "percentage":
             if data.get("value") > 100:
-                raise serializers.ValidationError("Percentage cannot be more than 100")
+                raise serializers.ValidationError(_("Percentage cannot be more than 100"))
         return data
 # -------------------------------
 # Apply Voucher Serializer
@@ -492,16 +493,16 @@ class ApplyVoucherSerializer(serializers.Serializer):
         try:
             voucher = Voucher.objects.get(code=data["code"], user=request.user, is_active=True)
         except Voucher.DoesNotExist:
-            raise Exception("Invalid voucher")
+            raise Exception(_("Invalid voucher"))
 
         if voucher.expiry_date < timezone.now():
-            raise Exception("Voucher expired")
+            raise Exception(_("Voucher expired"))
 
         if voucher.is_used:
-            raise Exception("Voucher already used")
+            raise Exception(_("Voucher already used"))
 
         if voucher.minimum_value and data["order_amount"] < voucher.minimum_value:
-            raise Exception("Minimum order value not met")
+            raise Exception(_("Minimum order value not met"))
 
         data["voucher"] = voucher
         return data
@@ -519,11 +520,11 @@ class ProviderVerificationSerializer(serializers.ModelSerializer):
     
     def validate(self, attrs):
         required_fields = {
-            "full_name": "Full name is required.",
-            "document_id": "Document ID is required.",
-            "dob": "Date of birth is required.",
-            "document": "Document image is required.",
-            "document_type": "Document type is required.",
+            "full_name": _("Full name is required."),
+            "document_id": _("Document ID is required."),
+            "dob": _("Date of birth is required."),
+            "document": _("Document image is required."),
+            "document_type": _("Document type is required."),
         }
         errors = {}
         for field, message in required_fields.items():
@@ -688,11 +689,11 @@ class ProviderPayoutMethodSerializer(serializers.ModelSerializer):
         method_type = data.get("method_type")
         if method_type == "BANK":
             if not data.get("account_number") or not data.get("ifsc_code"):
-                raise serializers.ValidationError("Bank details required")
+                raise serializers.ValidationError(_("Bank details required"))
 
         elif method_type == "PAYPAL":
             if not data.get("paypal_email"):
-                raise serializers.ValidationError("PayPal email required")
+                raise serializers.ValidationError(_("PayPal email required"))
 
         return data
 

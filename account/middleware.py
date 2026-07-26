@@ -1,8 +1,4 @@
 from django.utils import translation
-from find_worker_config.model_choice import UserLanguage
-from django.utils.translation import gettext_lazy as _
-
-from django.utils import translation
 from account.models import UserLanguage
 
 class UserLanguageMiddleware:

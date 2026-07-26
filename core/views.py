@@ -1,4 +1,5 @@
 from rest_framework import status
+from django.utils.translation import gettext as _
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -29,10 +30,10 @@ class TicketViewSet(UpdateModelViewSet):
 
     def get_user_profile_type(self):
         if self.request.user.role == UserRole.ADMIN:
-            raise Exception("Admin can't create tickets!")
+            raise Exception(_("Admin can't create tickets!"))
         profile_type = self.request.headers.get("profile-type")
         if not profile_type:
-            raise Exception("Profile Type Missing")
+            raise Exception(_("Profile Type Missing"))
         return profile_type.upper()
 
     def get_queryset(self):
@@ -57,7 +58,7 @@ class TicketViewSet(UpdateModelViewSet):
         user = self.request.user
         user_profile_type = self.get_user_profile_type()
         if user_profile_type not in UserDefault.values:
-            raise Exception("Invalid Profile Type")
+            raise Exception(_("Invalid Profile Type"))
         with transaction.atomic():
             instance = serializer.save(user=user, user_profile_type=user_profile_type)
             
@@ -73,7 +74,7 @@ class TicketViewSet(UpdateModelViewSet):
     
     def check_user(self, ticket: object):
         if not (self.request.user.role == UserRole.ADMIN or ticket.user == self.request.user):
-            return Response({"detail": "Not allowed"}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"detail": _("Not allowed")}, status=status.HTTP_403_FORBIDDEN)
 
     # -------------------
     # Reply to a ticket

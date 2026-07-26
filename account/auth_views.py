@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import OTP
 from find_worker_config.model_choice import OTPType, UserRole, LogStatus
+from django.utils.translation import gettext as _
 from django.core.files.base import ContentFile
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.request import Request
@@ -104,7 +105,7 @@ class LoginOTPRequestView(GenericAPIView):
             return Response(
                 {
                     "status": True,
-                    "message": "OTP sent",
+                    "message": _("OTP sent."),
                     "data": data
                 }, status=status.HTTP_200_OK
             )
@@ -155,10 +156,10 @@ class LoginOTPVerifyView(APIView):
         otp_object = OTP.objects.filter(query).last()
 
         if not otp_object:
-            raise Exception("Invalid OTP")
+            raise Exception(_("Invalid OTP."))
 
         if otp_object.is_expired():
-            raise Exception("OTP expired")
+            raise Exception(_("OTP expired."))
 
         otp_object.is_used = True
         otp_object.save(update_fields=["is_used"])
@@ -229,9 +230,9 @@ class SignUpOTPRequestView(APIView):
         email = data.get("email", None)
         phone = data.get("phone", None)
         if email and User.objects.filter(email=email).exists():
-            raise Exception("Email Already Taken!")
+            raise Exception(_("Email already taken."))
         if phone and User.objects.filter(phone=phone).exists():
-            raise Exception("Phone Already Taken!")
+            raise Exception(_("Phone already taken."))
         otp_obj = OTP.objects.create(
             phone=phone,
             email=email,
@@ -254,7 +255,7 @@ class SignUpOTPRequestView(APIView):
             return Response(
                 {
                     "status": True,
-                    "message": "OTP sent",
+                    "message": _("OTP sent."),
                     "data": self.get_response(otp_object)
                 }, status=status.HTTP_200_OK
             )
@@ -288,10 +289,10 @@ class SignUpOTPVerifyView(APIView):
         otp_object = OTP.objects.filter(query).last()
 
         if not otp_object:
-            raise Exception("Invalid OTP")
+            raise Exception(_("Invalid OTP."))
 
         if otp_object.is_expired():
-            raise Exception("OTP expired")
+            raise Exception(_("OTP expired."))
 
         otp_object.is_used = True
         otp_object.save(update_fields=["is_used"])
@@ -307,7 +308,7 @@ class SignUpOTPVerifyView(APIView):
                 email=otp_object.email, role=UserRole.USER, is_email_verified=True
             )
         else:
-            raise Exception("User not created, somethings wrong!")
+            raise Exception(_("User not created, something went wrong."))
         otp_object.user = user
         otp_object.save(update_fields=["user"])
         return user
@@ -363,7 +364,7 @@ class SignUpViews(GenericAPIView):
                 return Response(
                     {
                         "status": True,
-                        "message": "OTP send to your email address.",
+                        "message": _("OTP sent to your email address."),
                         "data": email
                     }, status=status.HTTP_200_OK
                 )
@@ -410,7 +411,7 @@ class UserSignUpOTPVerifyView(GenericAPIView):
                 otp_obj = get_otp_object(serializer.validated_data, OTPType.SIGNUP)
                 user = otp_obj.user
                 if not user:
-                    raise Exception("Not get user using this OTP.")
+                    raise Exception(_("Could not find user for this OTP."))
                 user.is_email_verified=True
                 user.save()
                 
@@ -470,7 +471,7 @@ class SignUpOTPResend(APIView):
     def send_code(self, email):
         user = self.get_user_by_email(email)
         if not user:
-            raise Exception("User can't found with this email.")
+            raise Exception(_("User not found with this email."))
         otp = OTP.objects.create(
             user=user,
             email=email,
@@ -484,7 +485,7 @@ class SignUpOTPResend(APIView):
             data = request.data
             email = data.get("email", None)
             if not email:
-                raise Exception("Need email for resend email!")
+                raise Exception(_("Email is required to resend OTP."))
             otp_object = self.send_code(email)
 
             data = {
@@ -499,7 +500,7 @@ class SignUpOTPResend(APIView):
             return Response(
                 {
                     "status": True,
-                    "message": "OTP Resend!"
+                    "message": _("OTP resent.")
                 }, status=status.HTTP_200_OK
             )
         except Exception as e:
@@ -535,7 +536,7 @@ class GoogleLoginAPIView(APIView):
             timeout=5
         )
         if response.status_code != 200:
-            raise Exception("Invalid Google token")
+            raise Exception(_("Invalid Google token."))
         google_data = response.json()
         return google_data
     
@@ -554,7 +555,7 @@ class GoogleLoginAPIView(APIView):
         picture = google_data.get("picture", "")
 
         if not email:
-            raise Exception("Email not available.")
+            raise Exception(_("Email not available."))
 
         user, created = User.objects.get_or_create(
             email=email,
@@ -575,7 +576,7 @@ class GoogleLoginAPIView(APIView):
                 access_token = request.data.get('access_token')
 
                 if not access_token:
-                    raise Exception("access_token is required")
+                    raise Exception(_("access_token is required."))
                 
                 google_data = self.google_response(access_token)
 
@@ -629,7 +630,7 @@ class AppleLoginAPIView(APIView):
             timeout=5
         )
         if response.status_code != 200:
-            raise Exception("Invalid Google token")
+            raise Exception(_("Invalid Google token."))
         google_data = response.json()
 
         # if data.get("aud") != settings.GOOGLE_CLIENT_ID:
@@ -652,7 +653,7 @@ class AppleLoginAPIView(APIView):
         picture = google_data.get("picture", "")
 
         if not email:
-            raise Exception("Email not available.")
+            raise Exception(_("Email not available."))
 
         user, created = User.objects.get_or_create(
             email=email,
@@ -673,7 +674,7 @@ class AppleLoginAPIView(APIView):
                 access_token = request.data.get('access_token')
 
                 if not access_token:
-                    raise Exception("access_token is required")
+                    raise Exception(_("access_token is required."))
                 
                 google_data = self.google_response(access_token)
 
@@ -710,7 +711,7 @@ class UpdateTokenVerifyView(TokenVerifyView):
             return Response(
                 {
                     "status": False,
-                    "message": "Token Valid!"
+                    "message": _("Token is valid.")
                 }, status=status.HTTP_200_OK
             )
         except ValidationError:
@@ -780,7 +781,7 @@ class ChangePasswordView(GenericAPIView):
                 return Response(
                     {
                         "status": True,
-                        "message": "Password changed successfully"
+                        "message": _("Password changed successfully.")
                     },
                     status=status.HTTP_200_OK
                 )
@@ -844,7 +845,7 @@ class PasswordResetRequestView(GenericAPIView):
             return Response(
                 {
                     "status": True,
-                    "message": "OTP send for reset your password.",
+                    "message": _("OTP sent to reset your password."),
                     "send_to": otp_object.email if otp_object.email else otp_object.phone
                 },
                 status=status.HTTP_200_OK
@@ -896,7 +897,7 @@ class PasswordResetConfirmView(GenericAPIView):
             return Response(
                 {
                     "status": True,
-                    "message": "Password Reset Sucessfully.",
+                    "message": _("Password reset successfully."),
                 },
                 status=status.HTTP_200_OK
             )

@@ -1,4 +1,4 @@
-
+from django.utils.translation import gettext as _
 from django.db import transaction
 from django.contrib.contenttypes.models import ContentType
 from account.models import ActivityLog
@@ -25,7 +25,7 @@ def handle_log_engine(request, action, status, message, entity=None, perform_use
 class LogActivityEngine:
     def get_confirm_data(self, field, field_name):
         if not field:
-            raise Exception(f"{field_name} is missing.")
+            raise Exception(_("{} is missing.").format(field_name))
         return field
     
     def __init__(self, data: dict):
@@ -39,7 +39,7 @@ class LogActivityEngine:
         if self.entity is None:
             return None
         elif not hasattr(self.entity, "_meta"):
-            raise Exception("Entity must be a Django model instance.")
+            raise Exception(_("Entity must be a Django model instance."))
         else:
             return ContentType.objects.get_for_model(self.entity)
 
@@ -72,7 +72,7 @@ class LogActivityEngine:
                 return log
         except Exception as e:
             print("error: ", e)
-            raise Exception("Someting wrong for create log!")
+            raise Exception(_("Someting wrong for create log!"))
 
 
     def get_notification_data(self, notification_for, receiver, profile, notification_message=None):
@@ -121,5 +121,5 @@ class LogActivityEngine:
                 return notification
         except Exception as e:
             print("error: ", e)
-            raise Exception("Someting wrong for create log!")
+            raise Exception(_("Someting wrong for create log!"))
 

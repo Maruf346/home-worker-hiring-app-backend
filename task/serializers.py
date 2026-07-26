@@ -1,5 +1,6 @@
 from .models import ServiceCategory, ServiceSubCategory, Order, ReviewAndRating, PaymentTransaction, ServiceSubCategory, OrderRefundRequest, OrderPaymentStatus, OrderAttachment, OrderChangesRequest
 from rest_framework import serializers
+from django.utils.translation import gettext_lazy as _
 from find_worker_config.model_choice import OrderStatus, UserDefault, OrderChangesRequestStatus, ChangesRequestType, HelperSlotExceptionType, ReviewRatingChoice, OrderChangeRequestAction
 from account.models import ServiceProviderProfile, HelperSlotException
 from django.shortcuts import get_object_or_404
@@ -111,7 +112,7 @@ class OrderSerializerAll(serializers.ModelSerializer):
 
     def validate_provider_id(self, value):
         if not ServiceProviderProfile.objects.filter(id=value).exists():
-            raise serializers.ValidationError("Provider not found")
+            raise serializers.ValidationError(_("Provider not found"))
         return value
 
     def validate(self, attrs):        
@@ -121,7 +122,7 @@ class OrderSerializerAll(serializers.ModelSerializer):
         working_hour = attrs.get("working_hour", 1)
 
         if not date and not time:
-            raise serializers.ValidationError("Date or time must be provided.")
+            raise serializers.ValidationError(_("Date or time must be provided."))
 
         slot_start_dt = datetime.combine(date, time)
         slot_end_dt = slot_start_dt + timedelta(hours=working_hour)
@@ -137,12 +138,12 @@ class OrderSerializerAll(serializers.ModelSerializer):
 
         if slot_status != HelperSlotExceptionType.AVAILABLE:
             status_map = {
-                "BOOKED": "Already booked",
-                "UNAVAILABLE": "Provider unavailable",
-                "FREEZED": "Temporarily locked",
+                "BOOKED": _("Already booked"),
+                "UNAVAILABLE": _("Provider unavailable"),
+                "FREEZED": _("Temporarily locked"),
             }
             raise serializers.ValidationError({
-                "slot": status_map.get(slot_status, "Not available")
+                "slot": status_map.get(slot_status, _("Not available"))
             })
         return attrs
     
@@ -172,13 +173,13 @@ class CounterSerializer(serializers.Serializer):
         profile_type = kwargs.get("profile_type")
         
         if order.status != OrderStatus.PENDING:
-            raise Exception(f"Order is already {order.status}")
+            raise Exception(_("Order is already {}").format(order.status))
         if OrderChangesRequest.objects.filter(order=order, status=OrderChangesRequestStatus.NO_RESPONSE).exists():
-            raise ValueError("One Changes Request not response!")
+            raise ValueError(_("One Changes Request not response!"))
         if OrderChangesRequest.objects.filter(order=order, request_by=profile_type, changes_type=ChangesRequestType.COUNTER).exists():
-            raise ValueError("Only One counter each side!")
+            raise ValueError(_("Only One counter each side!"))
         if profile_type == UserDefault.CUSTOMER and not OrderChangesRequest.objects.filter(order=order, request_by=UserDefault.PROVIDER).exists():
-            raise ValueError("Provider can send first counter.")
+            raise ValueError(_("Provider can send first counter."))
         with transaction.atomic():
             changes_object = OrderChangesRequest.objects.create(
                 order=order,
@@ -207,9 +208,9 @@ class CounterSerializer(serializers.Serializer):
 
 class SetHourSerializer(serializers.Serializer):
     set_hour = serializers.IntegerField(required=True,error_messages={
-            "required": "Hour is required",
-            "invalid": "Hour must be a valid number",
-            "null": "Hour cannot be empty"
+            "required": _("Hour is required"),
+            "invalid": _("Hour must be a valid number"),
+            "null": _("Hour cannot be empty")
         })
     message = serializers.CharField(required=False)
 
@@ -228,7 +229,7 @@ class SetHourSerializer(serializers.Serializer):
         order = self.context.get("order")
         if not order:
             raise serializers.ValidationError({
-                "order": "Order is required in serializer context"
+                "order": _("Order is required in serializer context")
             })
         
         slot_exception = HelperSlotException.objects.filter(order=order).first()
@@ -241,7 +242,7 @@ class SetHourSerializer(serializers.Serializer):
         time = order.working_start_time
 
         if not date and not time and not set_hour:
-            raise serializers.ValidationError("Date or time and Working Hour must be provided.")
+            raise serializers.ValidationError(_("Date or time and Working Hour must be provided."))
 
         slot_start_dt = datetime.combine(date, time)
         # slot_end_dt = slot_start_dt + timedelta(hours=set_hour)
@@ -250,9 +251,9 @@ class SetHourSerializer(serializers.Serializer):
 
         # SLOT ENGINE CALL
         status_map = {
-            "BOOKED": "Already booked",
-            "UNAVAILABLE": "Provider unavailable",
-            "FREEZED": "Temporarily locked",
+            "BOOKED": _("Already booked"),
+            "UNAVAILABLE": _("Provider unavailable"),
+            "FREEZED": _("Temporarily locked"),
         }
         slot_engine = SlotStatusEngine()
         for slot_start, slot_end in slots:
@@ -267,7 +268,7 @@ class SetHourSerializer(serializers.Serializer):
                     slot_exception.is_active = True
                     slot_exception.save()
                 raise serializers.ValidationError({
-                    "slot": status_map.get(slot_status, "Not available")
+                    "slot": status_map.get(slot_status, _("Not available"))
                 })
         
         if slot_exception:
@@ -284,7 +285,7 @@ class SetHourSerializer(serializers.Serializer):
         message = self.validated_data.get("message")
         order = kwargs.get("order")
         if order.status not in available_status:
-            raise ValueError(f"Set Hour not accept when order is {order.status}")
+            raise ValueError(_("Set Hour not accept when order is {}").format(order.status))
         
         with transaction.atomic():
             self.changes_object = OrderChangesRequest.objects.create(
@@ -310,14 +311,14 @@ class ProposeNewTimeSerializer(serializers.Serializer):
         order = self.context.get("order")
         if not order:
             raise serializers.ValidationError({
-                "order": "Order is required in serializer context"
+                "order": _("Order is required in serializer context")
             })
         
         date = attrs.get("date") or order.working_date
         time = attrs.get("time") or order.working_start_time
 
         if not date and not time:
-            raise serializers.ValidationError("Date or time must be provided.")
+            raise serializers.ValidationError(_("Date or time must be provided."))
 
         slot_start_dt = datetime.combine(date, time)
         slot_end_dt = slot_start_dt + timedelta(hours=order.working_hour)
@@ -333,12 +334,12 @@ class ProposeNewTimeSerializer(serializers.Serializer):
 
         if slot_status != HelperSlotExceptionType.AVAILABLE:
             status_map = {
-                "BOOKED": "Already booked",
-                "UNAVAILABLE": "Provider unavailable",
-                "FREEZED": "Temporarily locked",
+                "BOOKED": _("Already booked"),
+                "UNAVAILABLE": _("Provider unavailable"),
+                "FREEZED": _("Temporarily locked"),
             }
             raise serializers.ValidationError({
-                "slot": status_map.get(slot_status, "Not available")
+                "slot": status_map.get(slot_status, _("Not available"))
             })
         return attrs
 
@@ -374,9 +375,9 @@ class ProposeNewTimeSerializer(serializers.Serializer):
                 "time": time.isoformat(),
             })
         else:
-            raise ValueError("Time or date must be submit!")
+            raise ValueError(_("Time or date must be submit!"))
         data["changes_data"] = changes_data
-        response_message = "Request sent successfully"
+        response_message = _("Request sent successfully")
         return data, response_message
 
     def get_changes_object(self):
@@ -390,7 +391,7 @@ class ProposeNewTimeSerializer(serializers.Serializer):
             order=order,
             status=OrderChangesRequestStatus.NO_RESPONSE
         ).exists():
-            raise ValueError("Already sent a request!")
+            raise ValueError(_("Already sent a request!"))
         data, response_message = self.get_data(
             order,
             profile_type,
@@ -446,12 +447,12 @@ class ProposeNewTimeActionSerializer(serializers.Serializer):
         )
 
         status_map = {
-            "BOOKED": "Already booked",
-            "UNAVAILABLE": "Provider unavailable",
-            "FREEZED": "Temporarily locked"
+            "BOOKED": _("Already booked"),
+            "UNAVAILABLE": _("Provider unavailable"),
+            "FREEZED": _("Temporarily locked")
         }
         if slot_status != HelperSlotExceptionType.AVAILABLE:
-            raise ValueError(status_map.get(slot_status, "Not available"))
+            raise ValueError(status_map.get(slot_status, _("Not available")))
 
     def get_response_message(self):
         return self.response_message
@@ -463,17 +464,17 @@ class ProposeNewTimeActionSerializer(serializers.Serializer):
             time_str = changes_data.get("time")
             order.working_date = datetime.strptime(date_str, "%Y-%m-%d").date()
             order.working_start_time = datetime.strptime(time_str, "%H:%M:%S").time()
-            self.response_message = "Propose New Time & Date Accept!"
+            self.response_message = _("Propose New Time & Date Accept!")
         elif changes_request.changes_type == ChangesRequestType.DATE:
             changes_data = changes_request.changes_data
             date_str = changes_data.get("date")
             order.working_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-            self.response_message = "Propose New Date Accept!"
+            self.response_message = _("Propose New Date Accept!")
         elif changes_request.changes_type == ChangesRequestType.TIME:
             changes_data = changes_request.changes_data
             time_str = changes_data.get("time")
             order.working_start_time = datetime.strptime(time_str, "%H:%M:%S").time()
-            self.response_message = "Propose New Time Accept!"
+            self.response_message = _("Propose New Time Accept!")
         order.order_change_action = OrderChangeRequestAction.NO_ACTION
         order.save()
         return order
@@ -489,9 +490,9 @@ class ProposeNewTimeActionSerializer(serializers.Serializer):
         self.changes_object = changes_request
         status = self.validated_data.get("status", None)
         if changes_request.request_by == profile_type:
-            raise ValueError("You can't action your request.")
+            raise ValueError(_("You can't action your request."))
         elif changes_request.status in [OrderChangesRequestStatus.ACCEPT, OrderChangesRequestStatus.DECLINED]:
-            raise ValueError(f"This request is alread {changes_request.status}")
+            raise ValueError(_("This request is alread {}").format(changes_request.status))
         
         with transaction.atomic():
             status = status.upper()
@@ -502,7 +503,7 @@ class ProposeNewTimeActionSerializer(serializers.Serializer):
                 order = self.order_update(order, changes_request)
                 return order
             if status == OrderChangesRequestStatus.DECLINED:
-                self.response_message = f"Time Changes Request {status}"
+                self.response_message = _("Time Changes Request {}").format(status)
                 return order
 
 class StartWorkSerializer(serializers.Serializer):
@@ -537,7 +538,7 @@ class StartWorkSerializer(serializers.Serializer):
                 order_lng = order.lng
                 is_near = self.is_within_100m(helper_lat, helper_lng, order_lat, order_lng)
                 if not is_near:
-                    raise ValueError("You are not under 100m at work space!")
+                    raise ValueError(_("You are not under 100m at work space!"))
                 
                 Order.objects.filter(pk=order.id).update(
                     status=OrderStatus.IN_PROGRESS,
@@ -548,7 +549,7 @@ class StartWorkSerializer(serializers.Serializer):
                 order.refresh_from_db()
                 return order
         else:
-            raise ValueError("Something wrong!")
+            raise ValueError(_("Something wrong!"))
 
 class CompleteSerializer(serializers.Serializer):
     otp = serializers.CharField(required=True)
@@ -567,7 +568,7 @@ class CompleteSerializer(serializers.Serializer):
                 order.refresh_from_db()
                 return order
         else:
-            raise ValueError("OTP or Invalid OTP")
+            raise ValueError(_("OTP or Invalid OTP"))
 
 class ReviewAndRatingSerializer(serializers.ModelSerializer):
     review = serializers.CharField(required=False)
@@ -586,9 +587,9 @@ class ReviewAndRatingSerializer(serializers.ModelSerializer):
             order = self.context.get("order")
             send_by = self.context.get("send_by")
             if not any(order and send_by):
-                raise ValueError("Somthing Wrong!")
+                raise ValueError(_("Somthing Wrong!"))
             if ReviewAndRating.objects.filter(order=order, send_by=send_by).filter():
-                raise ValueError("Your feedback already submited!")
+                raise ValueError(_("Your feedback already submited!"))
             validated_data["order"] = order
             validated_data["customer"] = order.customer
             validated_data["provider"] = order.provider

@@ -1,5 +1,6 @@
 from pathlib import Path
 from datetime import timedelta
+from django.utils.translation import gettext_lazy as _
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -292,6 +293,7 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -373,10 +375,10 @@ USE_L10N = True
 
 LANGUAGE_CODE = 'en'
 
-# LANGUAGES = [
-#     ('en', 'English'),
-#     ('zh', 'Chinese'),
-# ]
+LANGUAGES = [
+    ('en', _('English')),
+    ('zh', _('Chinese')),
+]
 
 LOCALE_PATHS = [
     BASE_DIR / 'locale',

@@ -1,4 +1,5 @@
 from rest_framework import status
+from django.utils.translation import gettext as _
 from .serializers import ChatRoomSerializer, ChatMessageSerializer, MessageAttachmentSerializer, RoomStartSerializer, NotificationSerializer, ChatMessageSpecialSerializer
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -108,7 +109,7 @@ class ChatRoomMessageViewsets(UpdateModelViewSet):
     def get_user_profile(self):
         profile = self.kwargs.get("room_user", "").upper()
         if profile not in UserDefault.values:
-            raise ValueError("Profile Type Invalid.")
+            raise ValueError(_("Profile Type Invalid."))
         return self.kwargs.get("room_user")
 
     def get_room(self):
@@ -120,7 +121,7 @@ class ChatRoomMessageViewsets(UpdateModelViewSet):
             return Response(
                 {
                     "status": False,
-                    "message": "Conversation ID Missing."
+                    "message": _("Conversation ID Missing.")
                 }, status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -177,7 +178,7 @@ class NotificationViewsets(UpdateModelViewSet):
     queryset = Notification.objects.all()
     serializer_class = NotificationSerializer
     permission_classes = [IsAuthenticated]
-    delete_message = "Notification Deleted."
+    delete_message = _("Notification Deleted.")
 
     def get_queryset(self):
         return Notification.objects.filter(received=self.request.user)
@@ -191,7 +192,7 @@ class NotificationViewsets(UpdateModelViewSet):
         return Response(
             {
                 "status": False,
-                "message": "Notification direct create not allow."
+                "message": _("Notification direct create not allow.")
             }, status=status.HTTP_405_METHOD_NOT_ALLOWED
         )
     
@@ -199,7 +200,7 @@ class NotificationViewsets(UpdateModelViewSet):
         return Response(
             {
                 "status": False,
-                "message": "Notification direct create not allow."
+                "message": _("Notification direct create not allow.")
             }, status=status.HTTP_405_METHOD_NOT_ALLOWED
         )
 
