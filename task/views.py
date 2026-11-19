@@ -794,14 +794,31 @@ class CustomerOrderViewSet(UpdateModelViewSet):
                 }, status=status.HTTP_200_OK
             )
 
-    @action(detail=True, methods=["post"], url_path="give-feedback")
+    @action(detail=True, methods=["get", "post"], url_path="give-feedback")
     def give_feedback(self, request, *args, **kwargs):
         order = self.get_object()
+        if request.method.lower() == "get":
+            feedback = ReviewAndRating.objects.filter(order=order, send_by=UserDefault.CUSTOMER).first()
+            if not feedback:
+                return Response(
+                    {
+                        "status": False,
+                        "message": _("No feedback found for this order.")
+                    }, status=status.HTTP_404_NOT_FOUND
+                )
+            serializer = ReviewAndRatingSerializer(feedback, context={"request": request})
+            return Response(
+                {
+                    "status": True,
+                    "data": serializer.data
+                }, status=status.HTTP_200_OK
+            )
+
         try:
             with transaction.atomic():
                 serializer = ReviewAndRatingSerializer(data=request.data, context={"order": order, "send_by": UserDefault.CUSTOMER, "request": request})
                 serializer.is_valid(raise_exception=True)
-                serializer.save()
+                instance = serializer.save()
                 
                 handle_log_engine(
                     request=request, action="SEND FEEDBACK", status=LogStatus.SUCCESS, message="Send Feedback with this Order.", entity=order,
@@ -812,7 +829,8 @@ class CustomerOrderViewSet(UpdateModelViewSet):
                 return Response(
                     {
                         "status": True,
-                        "message": _("Thanks for your feedback!")
+                        "message": _("Thanks for your feedback!"),
+                        "data": ReviewAndRatingSerializer(instance, context={"request": request}).data
                     }, status=status.HTTP_200_OK
                 )
         except ValidationError:
@@ -1423,14 +1441,31 @@ class ProviderOrderViewSet(UpdateModelViewSet):
                 },status=status.HTTP_400_BAD_REQUEST
             )
 
-    @action(detail=True, methods=["post"], url_path="give-feedback")
+    @action(detail=True, methods=["get", "post"], url_path="give-feedback")
     def give_feedback(self, request, *args, **kwargs):
         order = self.get_object()
+        if request.method.lower() == "get":
+            feedback = ReviewAndRating.objects.filter(order=order, send_by=UserDefault.PROVIDER).first()
+            if not feedback:
+                return Response(
+                    {
+                        "status": False,
+                        "message": _("No feedback found for this order.")
+                    }, status=status.HTTP_404_NOT_FOUND
+                )
+            serializer = ReviewAndRatingSerializer(feedback, context={"request": request})
+            return Response(
+                {
+                    "status": True,
+                    "data": serializer.data
+                }, status=status.HTTP_200_OK
+            )
+
         try:
             with transaction.atomic():
                 serializer = ReviewAndRatingSerializer(data=request.data, context={"order": order, "send_by": UserDefault.PROVIDER, "request": request})
                 serializer.is_valid(raise_exception=True)
-                serializer.save()                
+                instance = serializer.save()                
                 handle_log_engine(
                     request=request, action="SEND FEEDBACK", status=LogStatus.SUCCESS, message="Send Feedback with this Order.", entity=order,
                     perform_user=self.request.user, perform_user_type=UserDefault.PROVIDER,
@@ -1440,7 +1475,8 @@ class ProviderOrderViewSet(UpdateModelViewSet):
                 return Response(
                     {
                         "status": True,
-                        "message": _("Thanks for your feedback!")
+                        "message": _("Thanks for your feedback!"),
+                        "data": ReviewAndRatingSerializer(instance, context={"request": request}).data
                     }, status=status.HTTP_200_OK
                 )
         except ValidationError:

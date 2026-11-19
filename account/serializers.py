@@ -409,6 +409,8 @@ class CurrentUserHelperSerializer(serializers.ModelSerializer):
                 },
                 "rating": review.rating,
                 "review": review.review,
+                "attachment": request.build_absolute_uri(review.attachment.url) if (review.attachment and request) else (review.attachment.url if review.attachment else None),
+                "image": request.build_absolute_uri(review.attachment.url) if (review.attachment and request) else (review.attachment.url if review.attachment else None),
                 "created_at": review.created_at
             }
             for review in obj.provider_reviews.filter(send_by=UserDefault.CUSTOMER)
@@ -630,6 +632,12 @@ class ReviewAndRatingProfileSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = self.clean_data(super().to_representation(instance))
+        request = self.context.get("request")
+        file_url = None
+        if instance.attachment:
+            file_url = request.build_absolute_uri(instance.attachment.url) if request else instance.attachment.url
+        data["attachment"] = file_url
+        data["image"] = file_url
         profile_type = self.context.get("profile_type")
         
         if profile_type == UserDefault.CUSTOMER:

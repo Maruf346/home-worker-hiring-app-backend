@@ -116,6 +116,8 @@ class HelperSerializer(serializers.ModelSerializer):
                 },
                 "rating": review.rating,
                 "review": review.review,
+                "attachment": request.build_absolute_uri(review.attachment.url) if (review.attachment and request) else (review.attachment.url if review.attachment else None),
+                "image": request.build_absolute_uri(review.attachment.url) if (review.attachment and request) else (review.attachment.url if review.attachment else None),
                 "created_at": review.created_at
             }
             # for review in obj.provider_reviews.all()

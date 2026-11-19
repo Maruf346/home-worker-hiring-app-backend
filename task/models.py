@@ -170,9 +170,14 @@ class ReviewAndRating(models.Model):
 
     rating = models.IntegerField(choices=ReviewRatingChoice.choices, default=ReviewRatingChoice.FIVE)
     review = models.CharField(max_length=255, blank=True, null=True)
+    attachment = models.FileField(upload_to="review/attachments/", blank=True, null=True)
     is_approved = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def image(self):
+        return self.attachment
     
     def save(self, *args, **kwargs):
         if self.send_by == UserDefault.CUSTOMER:

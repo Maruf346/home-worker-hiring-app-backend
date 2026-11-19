@@ -153,6 +153,7 @@ class ReviewAdmin(ModelAdmin):
         "id",
         "order",
         "rating",
+        "attachment",
         "send_by",
         "is_approved",
         "created_at",

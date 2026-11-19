@@ -105,6 +105,11 @@ class OrderSerializerAll(serializers.ModelSerializer):
         attachments_list = OrderAttachmentSerializer(instance.order_attachments, many=True, context=self.context).data
         data["attachments"] = attachments_list
         
+        customer_review = instance.order_review.filter(send_by=UserDefault.CUSTOMER).first()
+        data["customer_review"] = ReviewAndRatingSerializer(customer_review, context=self.context).data if customer_review else None
+        provider_review = instance.order_review.filter(send_by=UserDefault.PROVIDER).first()
+        data["provider_review"] = ReviewAndRatingSerializer(provider_review, context=self.context).data if provider_review else None
+
         if profile_type == UserDefault.PROVIDER:
             data.pop("confirmation_OTP")
         
@@ -571,17 +576,57 @@ class CompleteSerializer(serializers.Serializer):
             raise ValueError(_("OTP or Invalid OTP"))
 
 class ReviewAndRatingSerializer(serializers.ModelSerializer):
-    review = serializers.CharField(required=False)
+    review = serializers.CharField(required=False, allow_blank=True)
     rating = serializers.ChoiceField(
         choices=ReviewRatingChoice.choices,
         required=True
     )
+    attachment = serializers.FileField(required=False, allow_null=True)
+    image = serializers.FileField(required=False, allow_null=True)
     
     class Meta:
         model = ReviewAndRating
-        fields = ["id", "order", "customer", "provider", "send_by", "rating", "review", "is_approved", "created_at", "updated_at"]
+        fields = ["id", "order", "customer", "provider", "send_by", "rating", "review", "attachment", "image", "is_approved", "created_at", "updated_at"]
         read_only_fields = ["id", "order", "customer", "provider", "send_by", "is_approved", "created_at", "updated_at"]
     
+    def to_internal_value(self, data):
+        mutable_data = data.copy() if hasattr(data, "copy") else dict(data)
+        request = self.context.get("request")
+        if request and hasattr(request, "FILES") and request.FILES:
+            if "attachment" not in mutable_data or not mutable_data["attachment"]:
+                for key in ["attachment", "image", "file", "photo", "document"]:
+                    if key in request.FILES:
+                        mutable_data["attachment"] = request.FILES[key]
+                        break
+                if ("attachment" not in mutable_data or not mutable_data["attachment"]):
+                    first_file = next(iter(request.FILES.values()), None)
+                    if first_file:
+                        mutable_data["attachment"] = first_file
+
+        if ("attachment" not in mutable_data or not mutable_data["attachment"]):
+            for key in ["image", "file", "photo", "document"]:
+                if key in mutable_data and mutable_data[key]:
+                    mutable_data["attachment"] = mutable_data[key]
+                    break
+
+        return super().to_internal_value(mutable_data)
+
+    def validate(self, attrs):
+        if "image" in attrs and not attrs.get("attachment"):
+            attrs["attachment"] = attrs.get("image")
+        attrs.pop("image", None)
+        return super().validate(attrs)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        file_url = None
+        if instance.attachment:
+            file_url = request.build_absolute_uri(instance.attachment.url) if request else instance.attachment.url
+        data["attachment"] = file_url
+        data["image"] = file_url
+        return data
+
     def create(self, validated_data):
         with transaction.atomic():
             order = self.context.get("order")
