@@ -53,10 +53,11 @@ class ProviderInfoSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(source="user.email", read_only=True)
     phone = serializers.CharField(source="user.phone", read_only=True)
     photo = serializers.ImageField(source="user.photo", read_only=True)
+    company_logo = serializers.ImageField(source="logo", read_only=True)
 
     class Meta:
         model = ServiceProviderProfile
-        fields = ["id", "company_name", "username", "full_name", "email", "phone", "photo", "hourly_rate", "rating", "availability_status", "is_verified",]
+        fields = ["id", "company_name", "company_logo", "logo", "username", "full_name", "email", "phone", "photo", "hourly_rate", "rating", "availability_status", "is_verified",]
 
 class OrderAttachmentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -625,6 +626,13 @@ class ReviewAndRatingSerializer(serializers.ModelSerializer):
             file_url = request.build_absolute_uri(instance.attachment.url) if request else instance.attachment.url
         data["attachment"] = file_url
         data["image"] = file_url
+        if instance.provider:
+            logo_url = None
+            if instance.provider.logo:
+                logo_url = request.build_absolute_uri(instance.provider.logo.url) if request else instance.provider.logo.url
+            data["company_name"] = instance.provider.company_name
+            data["company_logo"] = logo_url
+            data["logo"] = logo_url
         return data
 
     def create(self, validated_data):

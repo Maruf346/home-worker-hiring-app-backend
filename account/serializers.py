@@ -604,12 +604,23 @@ class ReviewAndRatingProfileSerializer(serializers.ModelSerializer):
     
     def get_provider_data(self, instance):
         request = self.context.get("request")
-        if instance.provider and instance.provider.user:
+        if instance.provider:
+            user = getattr(instance.provider, "user", None)
+            photo_url = None
+            if user and user.photo:
+                photo_url = request.build_absolute_uri(user.photo.url) if request else user.photo.url
+            logo_url = None
+            if instance.provider.logo:
+                logo_url = request.build_absolute_uri(instance.provider.logo.url) if request else instance.provider.logo.url
+
             return {
                 "id": instance.provider.id,
-                "first_name": instance.provider.user.first_name,
-                "last_name": instance.provider.user.last_name,
-                "photo": request.build_absolute_uri(instance.provider.user.photo.url) if instance.provider.user.photo else None,
+                "first_name": user.first_name if user else "",
+                "last_name": user.last_name if user else "",
+                "photo": photo_url,
+                "company_name": instance.provider.company_name,
+                "company_logo": logo_url,
+                "logo": logo_url,
             }
         return None
 
@@ -642,10 +653,22 @@ class ReviewAndRatingProfileSerializer(serializers.ModelSerializer):
         
         if profile_type == UserDefault.CUSTOMER:
             data.pop("customer", None)
-            data["provider"] = self.get_provider_data(instance)
+            provider_data = self.get_provider_data(instance)
+            data["provider"] = provider_data
+            data["company_name"] = instance.provider.company_name if instance.provider else None
+            data["company_logo"] = provider_data.get("company_logo") if provider_data else None
+            data["logo"] = provider_data.get("logo") if provider_data else None
         elif profile_type == UserDefault.PROVIDER:
             data.pop("provider", None)
             data["customer"] = self.get_customer_data(instance)
+        else:
+            # If profile_type header was not set or different, still provide provider data if present
+            if instance.provider:
+                provider_data = self.get_provider_data(instance)
+                data["provider"] = provider_data
+                data["company_name"] = instance.provider.company_name
+                data["company_logo"] = provider_data.get("company_logo") if provider_data else None
+                data["logo"] = provider_data.get("logo") if provider_data else None
         return data
 
 
