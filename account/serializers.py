@@ -595,11 +595,53 @@ class SaveHelperProfileSerializer(serializers.ModelSerializer):
         data["helper"] = build_user_profile(instance.helper)
         return data
 
+class ReviewProviderDataSerializer(serializers.ModelSerializer):
+    first_name = serializers.CharField(source="user.first_name", read_only=True, default="")
+    last_name = serializers.CharField(source="user.last_name", read_only=True, default="")
+    photo = serializers.ImageField(source="user.photo", read_only=True)
+    company_name = serializers.CharField(read_only=True, default="")
+    company_logo = serializers.ImageField(source="logo", read_only=True)
+    logo = serializers.ImageField(read_only=True)
+
+    class Meta:
+        model = ServiceProviderProfile
+        fields = ["id", "first_name", "last_name", "photo", "company_name", "company_logo", "logo"]
+
+class ReviewCustomerDataSerializer(serializers.ModelSerializer):
+    first_name = serializers.CharField(source="user.first_name", read_only=True, default="")
+    last_name = serializers.CharField(source="user.last_name", read_only=True, default="")
+    photo = serializers.ImageField(source="user.photo", read_only=True)
+
+    class Meta:
+        model = CustomerProfile
+        fields = ["id", "first_name", "last_name", "photo"]
+
 class ReviewAndRatingProfileSerializer(serializers.ModelSerializer):
+    provider = ReviewProviderDataSerializer(read_only=True, allow_null=True)
+    customer = ReviewCustomerDataSerializer(read_only=True, allow_null=True)
+    attachment = serializers.FileField(read_only=True, allow_null=True)
+    image = serializers.FileField(source="attachment", read_only=True, allow_null=True)
+    company_name = serializers.CharField(source="provider.company_name", read_only=True, allow_null=True)
+    company_logo = serializers.ImageField(source="provider.logo", read_only=True, allow_null=True)
+    logo = serializers.ImageField(source="provider.logo", read_only=True, allow_null=True)
 
     class Meta:
         model = ReviewAndRating
-        fields = "__all__"
+        fields = [
+            "id",
+            "rating",
+            "review",
+            "attachment",
+            "image",
+            "company_name",
+            "company_logo",
+            "logo",
+            "is_approved",
+            "created_at",
+            "updated_at",
+            "provider",
+            "customer",
+        ]
         read_only_fields = ["customer", "provider", "order"]
     
     def get_provider_data(self, instance):
@@ -670,6 +712,10 @@ class ReviewAndRatingProfileSerializer(serializers.ModelSerializer):
                 data["company_logo"] = provider_data.get("company_logo") if provider_data else None
                 data["logo"] = provider_data.get("logo") if provider_data else None
         return data
+
+class ReviewAndRatingListResponseSerializer(serializers.Serializer):
+    status = serializers.BooleanField(default=True)
+    data = ReviewAndRatingProfileSerializer(many=True)
 
 
 

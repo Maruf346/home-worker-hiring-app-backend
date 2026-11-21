@@ -10,7 +10,7 @@ from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
 from .models import Address, CustomerProfile, HelperSlotException, HelperSpecialDate, HelperWallet, HelperWeeklyAvailability, ServiceProviderProfile, CustomerPaymentMethod, ProviderPayoutMethod, UserLanguage, Referral, Voucher, SavedHelper, ActivityLog, ProviderVerification
 from .serializers import (
-    HelperWeeklyAvailabilitySerializer, ProviderEarningsViewSerializer, ReviewAndRatingProfileSerializer, UserAddressSerializer, ProviderVerificationSerializer, CustomerPaymentMethodSerializer, ProviderPayoutMethodSerializer, ReferralSerializer, VoucherSerializer, ApplyVoucherSerializer, CurrentUserInfoSerializer, CurrentUserHelperSerializer, SaveHelperProfileSerializer
+    HelperWeeklyAvailabilitySerializer, ProviderEarningsViewSerializer, ReviewAndRatingProfileSerializer, ReviewAndRatingListResponseSerializer, UserAddressSerializer, ProviderVerificationSerializer, CustomerPaymentMethodSerializer, ProviderPayoutMethodSerializer, ReferralSerializer, VoucherSerializer, ApplyVoucherSerializer, CurrentUserInfoSerializer, CurrentUserHelperSerializer, SaveHelperProfileSerializer
 )
 from core.models import AddOfferVoucher
 from django.db.models import F, Q, Avg, ExpressionWrapper, FloatField, Sum, Value
@@ -269,6 +269,8 @@ class UserDefaultLanguage(APIView):
             }
         )
 
+from drf_spectacular.utils import extend_schema
+
 class ReviewAndRatingProfileViewSet(GenericViewSet):
     serializer_class = ReviewAndRatingProfileSerializer
     permission_classes = [IsAuthenticated]
@@ -278,6 +280,7 @@ class ReviewAndRatingProfileViewSet(GenericViewSet):
         context["profile_type"] = self.request.headers.get("profile_type", "").upper()
         return context
     
+    @extend_schema(responses={200: ReviewAndRatingListResponseSerializer})
     @action(detail=False, methods=["get"], url_path="customer(?:/(?P<review_id>[^/.]+))?")
     def customer_reviews(self, request, review_id=None):
         if review_id:
@@ -300,6 +303,7 @@ class ReviewAndRatingProfileViewSet(GenericViewSet):
             "data": serializer.data
         }, status=status.HTTP_200_OK)
 
+    @extend_schema(responses={200: ReviewAndRatingListResponseSerializer})
     @action(detail=False, methods=["get"], url_path="customer/submitted/review(?:/(?P<review_id>[^/.]+))?")
     def customer_submitted_reviews(self, request, review_id=None):
         if review_id:
@@ -321,6 +325,7 @@ class ReviewAndRatingProfileViewSet(GenericViewSet):
             "data": serializer.data
         }, status=status.HTTP_200_OK)
 
+    @extend_schema(responses={200: ReviewAndRatingListResponseSerializer})
     @action(detail=False, methods=["get"], url_path="provider(?:/(?P<review_id>[^/.]+))?")
     def provider_reviews(self, request, review_id=None):
         if review_id:
@@ -343,6 +348,7 @@ class ReviewAndRatingProfileViewSet(GenericViewSet):
             }, status=status.HTTP_200_OK
         )
 
+    @extend_schema(responses={200: ReviewAndRatingListResponseSerializer})
     @action(detail=False, methods=["get"], url_path="provider/submitted/review(?:/(?P<review_id>[^/.]+))?")
     def provider_submitted_reviews(self, request, review_id=None):
         if review_id:
